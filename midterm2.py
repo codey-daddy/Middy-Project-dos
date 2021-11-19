@@ -16,9 +16,11 @@ tickers = col
 start_date = '2005-01-01'
 end_date = '2020-12-31'
 
-
+# After running these two lines below once, you can comment them out so that it runs faster
 panel_data_fund = pdr.DataReader(tickers, 'yahoo', start_date, end_date)
+panel_data_fund.to_hdf('panel_data_fund.h5', 'key')
 
+panel_data_fund = pd.read_hdf('panel_data_fund.h5', 'key')
 
 Price_Daily = panel_data_fund['Close']
 Adj_Price_Daily = panel_data_fund['Adj Close']
@@ -44,16 +46,28 @@ Volume_Daily = panel_data_fund['Volume']
 #df_ffFactor.to_excel(output, sheet_name='FF_Factors')
 #output.save()
 
-#dx = pd.read_excel ('companies.xlsx', sheet_name = "S&P 500 Constituents")
-#shareout = dx.ShareOutstanding
-#shareouttic = dx.ticker
-#shareout = shareouttic.to_frame().merge(shareout, right_on = None, left_index=True, right_index=True)
+dx = pd.read_excel ('companies.xlsx', sheet_name = "S&P 500 Constituents")
+shareout = dx.ShareOutstanding
+shareouttic = dx.ticker
+shareout = shareouttic.to_frame().merge(shareout, right_on = None, left_index=True, right_index=True)
 
 
-#tickersdf = pd.DataFrame (tickers, columns = ['ticker'])
+tickersdf = pd.DataFrame (tickers, columns = ['ticker'])
 
-#mytickers = tickersdf.merge(shareout, on = 'ticker')
-#print(mytickers)
+mytickers = tickersdf.merge(shareout, on = 'ticker')
 
-Price_Monthly = Price_Daily.resample('M', on = 'Date')
-print (Price_Monthly)
+# get the last closing price of each ticker for each year and multiply by the oustanding shares
+Price_Monthly = Price_Daily.resample("1m").ffill()
+Price_Yearly = Price_Daily.resample("1y").ffill()
+
+
+print(mytickers)
+print(Price_Yearly["TJX"])
+
+print("-----------------------------------------------------------------")
+Market_Cap = Price_Yearly.copy()
+for index, row in mytickers.iterrows():
+    Market_Cap[row["ticker"]] = row["ShareOutstanding"] * Price_Yearly[row["ticker"]]
+
+print("-----------------------------------------------------------------")
+print(Market_Cap)    
